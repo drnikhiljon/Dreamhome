@@ -1,0 +1,9 @@
+CREATE TABLE PrivateOwner (
+    ownerNo VARCHAR(5) PRIMARY KEY,
+    fName VARCHAR(30) NOT NULL,
+    lName VARCHAR(30) NOT NULL,
+    telNo VARCHAR(15),
+    street VARCHAR(50),
+    city VARCHAR(100),
+    postcode VARCHAR(10)
+);
