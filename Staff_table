@@ -1,0 +1,11 @@
+CREATE TABLE Staff (
+    staffNo VARCHAR(5) PRIMARY KEY,
+    fName VARCHAR(30) NOT NULL,
+    lName VARCHAR(30) NOT NULL,
+    position VARCHAR(20) NOT NULL,
+    sex CHAR(1) CHECK (sex IN ('M', 'F')),
+    dob DATE,
+    salary DECIMAL(10, 2) CHECK (salary >= 0),
+    branchNo VARCHAR(4) NOT NULL,
+    FOREIGN KEY (branchNo) REFERENCES Branch(branchNo)
+);
