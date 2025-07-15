@@ -1,0 +1,6 @@
+CREATE TABLE Branch (
+    branchNo VARCHAR(4) PRIMARY KEY,
+    street VARCHAR(50) NOT NULL,
+    city VARCHAR(30) NOT NULL,
+    postcode VARCHAR(10) NOT NULL
+);
