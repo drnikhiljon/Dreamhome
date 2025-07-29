@@ -1,0 +1,179 @@
+-- Create the Branch table
+CREATE TABLE Branch (
+    branchNo VARCHAR(10) PRIMARY KEY, -- Primary Key: Uniquely identifies each branch.
+    street VARCHAR(255) NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    postcode VARCHAR(20) NOT NULL,
+    -- 'telNo' can hold up to a maximum of three telephone numbers.
+    -- For simplicity, storing as a single VARCHAR. In a more complex design, this could be a separate table or an array type.
+    telNo VARCHAR(50),
+    managerStaffNo VARCHAR(10) UNIQUE -- Foreign Key (references Staff table) and Alternate Key: A manager uniquely manages a branch.
+);
+
+-- Create the Staff table
+CREATE TABLE Staff (
+    staffNo VARCHAR(10) PRIMARY KEY, -- Primary Key: Unique across all branches of DreamHome.
+    fName VARCHAR(100) NOT NULL,
+    lName VARCHAR(100) NOT NULL,
+    address VARCHAR(255),
+    position VARCHAR(50) NOT NULL, -- e.g., Manager, Supervisor, Assistant.
+    salary NUMERIC(10, 2),
+    -- Foreign Key (references Staff table itself for supervisory relationship).
+    -- 'supervisorStaffNo' is nullable as not all members of staff are assigned to a Supervisor.
+    supervisorStaffNo VARCHAR(10),
+    branchNo VARCHAR(10) NOT NULL, -- Foreign Key (references Branch table).
+    sex CHAR(1), -- Data required on members of staff includes sex.
+    DOB DATE, -- Data required on members of staff includes date of birth (DOB).
+    -- Candidate Key: Combination of name and DOB could be unique enough to identify a staff,
+    -- though staffNo is explicitly stated as unique across all branches.
+    UNIQUE (fName, lName, DOB),
+    FOREIGN KEY (supervisorStaffNo) REFERENCES Staff(staffNo), -- Self-referencing foreign key for Supervisor-Staff relationship.
+    FOREIGN KEY (branchNo) REFERENCES Branch(branchNo) -- Establishes 'Works_At' relationship.
+);
+
+
+-- Create the PropertyForRent table
+CREATE TABLE PropertyForRent (
+    propertyNo VARCHAR(10) PRIMARY KEY, -- Primary Key: Unique across all branch offices.
+    street VARCHAR(255) NOT NULL, -- Part of the property's address.
+    city VARCHAR(100) NOT NULL, -- Part of the property's address.
+    postcode VARCHAR(20) NOT NULL, -- Part of the property's address.
+    type VARCHAR(50) NOT NULL, -- Type of property.
+    rooms INTEGER NOT NULL, -- Number of rooms.
+    monthlyRent NUMERIC(10, 2) NOT NULL, -- Monthly rent.
+    -- 'ownerNo' is a Foreign Key referencing either PrivateOwner or BusinessOwner.
+    -- PostgreSQL doesn't directly support OR in foreign keys. A common robust solution
+    -- is to have a supertype 'Owner' table that both PrivateOwner and BusinessOwner inherit from.
+    -- For this direct table creation, we'll assume a mechanism (e.g., application logic or triggers)
+    -- to ensure referential integrity against either PrivateOwner or BusinessOwner.
+    ownerNo VARCHAR(10) NOT NULL,
+    -- 'managedByStaffNo' is nullable as a property might not currently be rented out or requiring rental.
+    managedByStaffNo VARCHAR(10), -- Foreign Key (references Staff table).
+    -- Candidate Key: An address for a property should be unique.
+    UNIQUE (street, city, postcode),
+    -- Note: Direct foreign key to a 'supertype' Owner table would be ideal here if implemented.
+    -- For now, commenting out direct links to subtypes and assuming an external mechanism
+    -- or a combined Owner table if preferred in a real implementation.
+    -- FOREIGN KEY (ownerNo) REFERENCES PrivateOwner(ownerNo) ON DELETE CASCADE,
+    -- FOREIGN KEY (ownerNo) REFERENCES BusinessOwner(ownerNo) ON DELETE CASCADE,
+    FOREIGN KEY (managedByStaffNo) REFERENCES Staff(staffNo) -- Establishes 'Manages_Property' relationship.
+);
+
+-- Create the Client table
+CREATE TABLE Client (
+    clientNo VARCHAR(10) PRIMARY KEY, -- Primary Key: Unique across all DreamHome branches.
+    fName VARCHAR(100) NOT NULL, -- Name (first and last name).
+    lName VARCHAR(100) NOT NULL,
+    telNo VARCHAR(50), -- Telephone number.
+    prefTypeAccommodation VARCHAR(100), -- Preferred type of accommodation.
+    maxRent NUMERIC(10, 2), -- Maximum rent the client is prepared to pay.
+    registeredByStaffNo VARCHAR(10) NOT NULL, -- Foreign Key (references Staff table).
+    dateJoined DATE NOT NULL, -- Date the client joined.
+    registeredAtBranchNo VARCHAR(10) NOT NULL, -- Foreign Key (references Branch table).
+    -- Candidate Key: Combination of name and telephone number could be unique.
+    UNIQUE (fName, lName, telNo),
+    FOREIGN KEY (registeredByStaffNo) REFERENCES Staff(staffNo), -- Establishes 'Processed_Registration' relationship.
+    FOREIGN KEY (registeredAtBranchNo) REFERENCES Branch(branchNo) -- Establishes 'Registers_At' relationship.
+);
+
+-- Create the Lease table
+CREATE TABLE Lease (
+    leaseNo VARCHAR(10) PRIMARY KEY, -- Primary Key: Unique across all DreamHome branches.
+    clientNo VARCHAR(10) NOT NULL, -- Foreign Key (references Client table).
+    propertyNo VARCHAR(10) NOT NULL, -- Foreign Key (references PropertyForRent table).
+    monthlyRent NUMERIC(10, 2) NOT NULL, -- Monthly rent.
+    paymentMethod VARCHAR(50), -- Method of payment.
+    depositPaid BOOLEAN, -- Indication of whether the deposit has been paid.
+    depositAmount NUMERIC(10, 2), -- Calculated as twice the monthly rent.
+    durationMonths INTEGER, -- Duration of lease.
+    startDate DATE NOT NULL, -- Date the lease period is to start.
+    finishDate DATE NOT NULL, -- Date the lease period is to finish.
+    -- Candidate Key: A client can have a lease for a given property starting on a specific date.
+    UNIQUE (clientNo, propertyNo, startDate),
+    FOREIGN KEY (clientNo) REFERENCES Client(clientNo),
+    FOREIGN KEY (propertyNo) REFERENCES PropertyForRent(propertyNo)
+);
+
+-- Create the Newspaper table
+CREATE TABLE Newspaper (
+    newspaperName VARCHAR(255) PRIMARY KEY, -- Primary Key: Newspaper name is unique for identification.
+    address VARCHAR(255), -- Newspaper's address.
+    telNo VARCHAR(50), -- Newspaper's telephone number.
+    contactName VARCHAR(255) -- Contact name at the newspaper.
+);
+
+-- Create the Advertises table (Junction table for M:M relationship between Newspaper and PropertyForRent)
+CREATE TABLE Advertises (
+    propertyNo VARCHAR(10) NOT NULL, -- Foreign Key (references PropertyForRent table).
+    newspaperName VARCHAR(255) NOT NULL, -- Foreign Key (references Newspaper table).
+    dateAdvertised DATE NOT NULL, -- Date advertised.
+    cost NUMERIC(10, 2), -- Cost of advertisement.
+    -- Composite Primary Key: A property can be advertised in a newspaper on a specific date.
+    PRIMARY KEY (propertyNo, newspaperName, dateAdvertised),
+    FOREIGN KEY (propertyNo) REFERENCES PropertyForRent(propertyNo),
+    FOREIGN KEY (newspaperName) REFERENCES Newspaper(newspaperName)
+);
+
+-- Create the PropertyViewing table
+CREATE TABLE PropertyViewing (
+    clientNo VARCHAR(10) NOT NULL, -- Foreign Key (references Client table).
+    propertyNo VARCHAR(10) NOT NULL, -- Foreign Key (references PropertyForRent table).
+    dateViewed DATE NOT NULL, -- Date the client viewed the property.
+    -- 'comment' is nullable as clients may not always provide comments.
+    comment TEXT,
+    -- Composite Primary Key: A client may view the same property only once on a given date.
+    PRIMARY KEY (clientNo, propertyNo, dateViewed),
+    FOREIGN KEY (clientNo) REFERENCES Client(clientNo),
+    FOREIGN KEY (propertyNo) REFERENCES PropertyForRent(propertyNo)
+);
+
+-- Add Foreign Key for Branch.managerStaffNo after Staff table creation
+-- This is done separately because Staff must exist before Branch can reference it.
+ALTER TABLE Branch
+ADD CONSTRAINT fk_manager_staff
+FOREIGN KEY (managerStaffNo) REFERENCES Staff(staffNo);
+
+-- Add check constraint for depositAmount in Lease table (PostgreSQL specific)
+ALTER TABLE Lease
+ADD CONSTRAINT chk_deposit_amount CHECK (depositAmount = 2 * monthlyRent);
+
+-- To handle the `ownerNo` in `PropertyForRent` relating to *either* `PrivateOwner` or `BusinessOwner`
+-- in a robust relational database design, a supertype-subtype pattern is typically used.
+-- Here's how you would structure it, and then modify PropertyForRent's FK:
+
+/*
+-- 1. Create a supertype 'Owner' table
+CREATE TABLE Owner (
+    ownerNo VARCHAR(10) PRIMARY KEY, -- Common identifier for all owners
+    address VARCHAR(255),
+    telNo VARCHAR(50),
+    ownerType VARCHAR(20) NOT NULL CHECK (ownerType IN ('Private', 'Business')) -- Discriminator to indicate type
+);
+
+-- 2. Modify PrivateOwner and BusinessOwner to reference the supertype
+-- Drop existing primary keys if they exist and make ownerNo a foreign key.
+-- Alternatively, keep them as PKs and also FKs (if ownerNo is copied).
+-- For simplicity, assuming `ownerNo` is the PK of the subtype table AND a FK to the supertype.
+ALTER TABLE PrivateOwner
+    DROP CONSTRAINT privateowner_pkey CASCADE; -- Drop existing PK to redefine it as FK/PK
+ALTER TABLE PrivateOwner
+    ADD CONSTRAINT privateowner_pkey PRIMARY KEY (ownerNo);
+ALTER TABLE PrivateOwner
+    ADD CONSTRAINT fk_private_owner_supertype FOREIGN KEY (ownerNo) REFERENCES Owner(ownerNo);
+
+ALTER TABLE BusinessOwner
+    DROP CONSTRAINT businessowner_pkey CASCADE; -- Drop existing PK to redefine it as FK/PK
+ALTER TABLE BusinessOwner
+    ADD CONSTRAINT businessowner_pkey PRIMARY KEY (ownerNo);
+ALTER TABLE BusinessOwner
+    ADD CONSTRAINT fk_business_owner_supertype FOREIGN KEY (ownerNo) REFERENCES Owner(ownerNo);
+
+-- 3. Modify PropertyForRent to reference the supertype 'Owner' table
+-- First, drop the existing foreign key constraint(s) if they were previously created.
+ALTER TABLE PropertyForRent
+    DROP CONSTRAINT IF EXISTS propertyforrent_ownerno_fkey; -- If it was created implicitly or explicitly
+
+ALTER TABLE PropertyForRent
+    ADD CONSTRAINT fk_property_owner FOREIGN KEY (ownerNo) REFERENCES Owner(ownerNo);
+*/
+
