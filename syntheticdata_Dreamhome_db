@@ -1,0 +1,64 @@
+-- 1. Populate Branch Table
+INSERT INTO Branch (branchNo, street, city, postcode, telNo, managerStaffNo) VALUES
+('B001', '100 Main St', 'London', 'SW1A 0AA', '020-7946-0001', NULL),
+('B002', '200 High St', 'Edinburgh', 'EH1 1AA', '0131-496-0002', NULL),
+('B004', '163 Main St', 'Glasgow', 'G11 9QX', '0141-339-2178', NULL);
+
+-- 2. Populate Staff Table (including managers, supervisors, and assistants)
+-- Ensure Managers are inserted first if they are to be assigned to branches immediately.
+-- Null for supervisorStaffNo indicates no supervisor or they are a manager.
+INSERT INTO Staff (staffNo, fName, lName, address, position, salary, supervisorStaffNo, branchNo, sex, DOB) VALUES
+('SL01', 'John', 'Doe', '123 London Rd, London', 'Manager', 35000.00, NULL, 'B001', 'M', '1975-01-15'),
+('SL02', 'Jane', 'Smith', '456 London Ave, London', 'Assistant', 18000.00, NULL, 'B001', 'F', '1988-03-20'),
+('SL03', 'Bob', 'Johnson', '789 High St, Edinburgh', 'Manager', 32000.00, NULL, 'B002', 'M', '1972-11-01'),
+('SL04', 'Alice', 'Brown', '101 Castle Terrace, Edinburgh', 'Supervisor', 25000.00, 'SL03', 'B002', 'F', '1980-07-10'),
+('SL05', 'Charlie', 'Green', '102 Princes St, Edinburgh', 'Assistant', 16000.00, 'SL04', 'B002', 'M', '1992-05-05'),
+('SL42', 'Mike', 'Evans', '200 Main St, Glasgow', 'Assistant', 12500.00, 'SL21', 'B003', 'M', '1991-09-01');
+
+
+-- Update Branch with managerStaffNo (now that staff exist)
+UPDATE Branch SET managerStaffNo = 'SL01' WHERE branchNo = 'B001';
+UPDATE Branch SET managerStaffNo = 'SL03' WHERE branchNo = 'B002';
+UPDATE Branch SET managerStaffNo = 'SL04' WHERE branchNo = 'B003';
+
+-- 3. Populate PropertyForRent Table
+-- ownerNo is a generic string since owner tables were removed.
+INSERT INTO PropertyForRent (propertyNo, street, city, postcode, type, rooms, monthlyRent, ownerNo, managedByStaffNo) VALUES
+('PG1', '10 Downing St', 'London', 'SW1A 2AA', 'Flat', 4, 1500.00, 'CO01', 'SL02'),
+('PG2', '221B Baker St', 'London', 'NW1 6XE', 'House', 6, 2500.00, 'CO02', 'SL02'),
+('PG3', '1 Royal Mile', 'Edinburgh', 'EH1 2AA', 'Flat', 2, 700.00, 'CO03', 'SL04'),
+('PG5', '123 Castle St', 'Edinburgh', 'EH2 3AA', 'House', 5, 1200.00, 'CO05', 'SL04'),
+('PG6', '789 High St', 'Glasgow', 'G12 8LS', 'Flat', 1, 300.00, 'CO06', 'SL42');
+
+
+-- 4. Populate Client Table
+INSERT INTO Client (clientNo, fName, lName, telNo, prefTypeAccommodation, maxRent, registeredByStaffNo, dateJoined, registeredAtBranchNo) VALUES
+('CR01', 'Emma', 'Wilson', '020-7111-2222', 'House', 2000.00, 'SL01', '2003-01-10', 'B001'),
+('CR02', 'Liam', 'Taylor', '020-7333-4444', 'Flat', 1000.00, 'SL02', '2003-02-15', 'B001'),
+('CR03', 'Olivia', 'Harris', '0131-222-3333', 'Flat', 800.00, 'SL03', '2003-03-20', 'B002'),
+('CR04', 'Noah', 'Clark', '0131-444-5555', 'House', 1500.00, 'SL04', '2003-04-25', 'B002'),
+('CR77', 'Sophia', 'Miller', '0141-777-6666', 'Flat', 400.00, 'SL42', '2003-06-01', 'B003');
+
+-- 5. Populate Newspaper Table
+INSERT INTO Newspaper (newspaperName, address, telNo, contactName) VALUES
+('London Times', 'Times House, London', '020-8000-1111', 'News Editor'),
+('Edinburgh Post', 'Post Building, Edinburgh', '0131-600-2222', 'Adverts Manager');
+
+
+-- 6. Populate Advertises Table
+INSERT INTO Advertises (propertyNo, newspaperName, dateAdvertised, cost) VALUES
+('PG1', 'London Times', '2003-04-01', 100.00),
+('PG3', 'Edinburgh Post', '2003-03-15', 75.00),
+('PG6', 'Glasgow Daily', '2003-06-10', 40.00);
+
+
+-- 7. Populate Lease Table
+INSERT INTO Lease (leaseNo, clientNo, propertyNo, monthlyRent, paymentMethod, depositPaid, depositAmount, durationMonths, startDate, finishDate) VALUES
+('L002', 'CR01', 'PG1', 1500.00, 'Standing Order', TRUE, 3000.00, 6, '2003-06-01', '2003-11-30'),
+('L003', 'CR03', 'PG3', 700.00, 'Direct Debit', TRUE, 1400.00, 12, '2003-07-01', '2004-06-30');
+
+-- 8. Populate PropertyViewing Table
+INSERT INTO PropertyViewing (clientNo, propertyNo, dateViewed, comment) VALUES
+('CR01', 'PG1', '2003-05-20', 'Very spacious, good location.'),
+('CR76', 'PG4', '2003-05-05', 'Liked the flat, good value.'),
+('CR02', 'PG2', '2003-04-10', 'Too big for my needs, but nice garden.');
