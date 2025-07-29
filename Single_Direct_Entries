@@ -1,0 +1,37 @@
+
+---First create a branch----
+INSERT INTO Branch (branchNo, street, city, postcode, telNo, managerStaffNo)
+VALUES ('B003', '163 Main St', 'Glasgow', 'G11 9QX', '0141-339-2178', NULL);
+
+---Hire staff to the branch-----
+INSERT INTO Staff (staffNo, fName, lName, address, position, salary, supervisorStaffNo, branchNo, sex, DOB)
+VALUES ('SL21', 'John', 'White', '195 George St, Glasgow', 'Manager', 30000.00, NULL, 'B003', 'M', '1970-03-10');
+
+INSERT INTO Staff (staffNo, fName, lName, address, position, salary, supervisorStaffNo, branchNo, sex, DOB)
+VALUES ('SL41', 'Ann', 'Beech', '189 Circus Ave, Glasgow', 'Assistant', 12000.00, NULL, 'B003', 'F', '1985-06-25');
+
+
+----Update Branch with respective Manager ---
+UPDATE Branch
+SET managerStaffNo = 'SL21'
+WHERE branchNo = 'B003';
+
+
+----Add a property for rent ----
+INSERT INTO PropertyForRent (propertyNo, street, city, postcode, type, rooms, monthlyRent, ownerNo, managedByStaffNo)
+VALUES ('PG4', '6 Lawrence St', 'Glasgow', 'G11 9QX', 'Flat', 3, 450.00, 'CO40', 'SL41');
+
+----Add a new client to the database ---- 
+INSERT INTO Client (clientNo, fName, lName, telNo, prefTypeAccommodation, maxRent, registeredByStaffNo, dateJoined, registeredAtBranchNo)
+VALUES ('CR76', 'Mike', 'Ritchie', '0141-999-8888', 'Flat', 500.00, 'SL41', '2003-05-01', 'B003');
+
+---Populate the lease table---- 
+INSERT INTO Lease (leaseNo, clientNo, propertyNo, monthlyRent, paymentMethod, depositPaid, depositAmount, durationMonths, startDate, finishDate)
+VALUES ('L001', 'CR76', 'PG4', 450.00, 'Direct Debit', TRUE, 900.00, 12, '2003-05-10', '2004-05-09');
+
+
+--insert details on advertisement ---
+INSERT INTO Newspaper (newspaperName, address, telNo, contactName)
+VALUES ('Glasgow Daily', '123 Newspaper Rd, Glasgow', '0141-555-1234', 'Editor');
+
+
