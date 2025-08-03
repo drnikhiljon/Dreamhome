@@ -177,3 +177,39 @@ ALTER TABLE PropertyForRent
     ADD CONSTRAINT fk_property_owner FOREIGN KEY (ownerNo) REFERENCES Owner(ownerNo);
 */
 
+
+
+-- Phase 1: Database Schema Modifications & New User Setup
+
+-- 1. Add 'password' column to the Client table
+ALTER TABLE Client
+ADD COLUMN password VARCHAR(255); -- Using VARCHAR(255) for password. In production, store hashed passwords!
+
+-- 2. Add 'is_available' column to the PropertyForRent table
+ALTER TABLE PropertyForRent
+ADD COLUMN is_available BOOLEAN DEFAULT TRUE; -- Default to true (available)
+
+-- 3. Create 'client_user' role (database user)
+CREATE ROLE client_user WITH LOGIN PASSWORD 'client_pass';
+
+-- 4. Grant permissions to 'client_user'
+-- Clients need to select property details
+GRANT SELECT ON PropertyForRent TO client_user;
+GRANT SELECT ON Client TO client_user;
+GRANT SELECT ON Lease TO client_user; -- If they are to see their leases
+GRANT SELECT ON PropertyViewing TO client_user; -- If they are to see their viewings
+
+-- If clients can update their own preferences (e.g., maxRent, prefTypeAccommodation),
+-- you'd grant UPDATE on specific columns, or allow general UPDATE for simplicity
+GRANT UPDATE ON Client TO client_user;
+-- In a real app, you'd add row-level security so a client_user can only update their own row.
+-- For this beginner example, a client_user would technically be able to update any client.
+
+-- Ensure future tables also get these default privileges
+ALTER DEFAULT PRIVILEGES FOR ROLE client_user IN SCHEMA public GRANT SELECT ON TABLES TO client_user;
+
+-- Revoke INSERT/UPDATE on PropertyForRent for client_user if they should only view
+-- Currently, they have SELECT on PropertyForRent from the broad grant above.
+-- If you want more fine-grained control for staff_user/branch_user later,
+-- you might revoke their broad grants and then grant specific ones.
+-- For now, the existing broad grants for branch_user/staff_user remain.
