@@ -1,0 +1,158 @@
+import streamlit as st
+import psycopg2
+from psycopg2 import Error
+import pandas as pd
+
+# --- Database Configuration ---
+# IMPORTANT: Replace these with your actual PostgreSQL database credentials.
+DATABASE_CONFIG = {
+    "host": "localhost",  # e.g., 'localhost' or your database server IP
+    "database": "Dreamhome_DB", # Your database name (e.g., 'dreamhome_db')
+    "port": "5432"        # Your PostgreSQL port (default is 5432)
+}
+
+# --- Database Connection Function ---
+def create_db_connection(username, password):
+    """
+    Establishes a connection to the PostgreSQL database using the provided credentials.
+    Returns the connection object if successful, None otherwise.
+    """
+    conn = None
+    try:
+        conn = psycopg2.connect(
+            host=DATABASE_CONFIG["host"],
+            database=DATABASE_CONFIG["database"],
+            user=username,
+            password=password,
+            port=DATABASE_CONFIG["port"]
+        )
+        st.success(f"Successfully connected to the database as {username}!")
+        return conn
+    except Error as e:
+        st.error(f"Error connecting to the database as {username}: {e}")
+        return None
+
+# --- Application Layout ---
+st.set_page_config(layout="wide")
+st.title("🏡 DreamHome Database Portal")
+
+# --- Login Logic ---
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+if 'user_role' not in st.session_state:
+    st.session_state.user_role = None
+if 'db_connection' not in st.session_state:
+    st.session_state.db_connection = None
+
+if not st.session_state.logged_in:
+    st.sidebar.header("Login")
+    username = st.sidebar.text_input("Username (branch_user / staff_user)")
+    password = st.sidebar.text_input("Password", type="password")
+
+    if st.sidebar.button("Login"):
+        conn = create_db_connection(username, password)
+        if conn:
+            st.session_state.logged_in = True
+            st.session_state.db_connection = conn
+            if username == "branch_user":
+                st.session_state.user_role = "Branch User"
+            elif username == "staff_user":
+                st.session_state.user_role = "Staff User"
+            else:
+                st.error("Invalid username. Please use 'branch_user' or 'staff_user'.")
+                st.session_state.logged_in = False # Reset if invalid user
+                if conn:
+                    conn.close() # Close connection if not a valid user
+                    st.session_state.db_connection = None
+            st.rerun() # Rerun to update the UI based on login state
+else:
+    # --- Logout Button ---
+    st.sidebar.success(f"Logged in as: {st.session_state.user_role}")
+    if st.sidebar.button("Logout"):
+        if st.session_state.db_connection:
+            st.session_state.db_connection.close()
+        st.session_state.logged_in = False
+        st.session_state.user_role = None
+        st.session_state.db_connection = None
+        st.rerun() # Rerun to go back to login page
+
+    conn = st.session_state.db_connection
+
+    # --- Role-Based Content Display ---
+    st.header(f"Welcome, {st.session_state.user_role}!")
+
+    if st.session_state.user_role == "Branch User":
+        st.subheader("Branch Operations Dashboard")
+        st.write("As a Branch User, you have a broader view of the DreamHome operations.")
+
+        # Display Branch Details
+        st.markdown("### Branch Details")
+        try:
+            df_branches = pd.read_sql("SELECT * FROM Branch ORDER BY branchNo;", conn)
+            st.dataframe(df_branches, use_container_width=True)
+        except Exception as e:
+            st.error(f"Error fetching Branch details: {e}")
+
+        # Display All Staff Details
+        st.markdown("### All Staff Details")
+        try:
+            df_staff = pd.read_sql("SELECT * FROM Staff ORDER BY branchNo, fName;", conn)
+            st.dataframe(df_staff, use_container_width=True)
+        except Exception as e:
+            st.error(f"Error fetching Staff details: {e}")
+
+        # Display All Properties
+        st.markdown("### All Properties for Rent")
+        try:
+            df_properties = pd.read_sql("SELECT * FROM PropertyForRent ORDER BY propertyNo;", conn)
+            st.dataframe(df_properties, use_container_width=True)
+        except Exception as e:
+            st.error(f"Error fetching Property details: {e}")
+
+    elif st.session_state.user_role == "Staff User":
+        st.subheader("Staff Member Dashboard")
+        st.write("As a Staff User, you can manage clients and view properties.")
+
+        staff_no = None
+        if 'staff_no_input' not in st.session_state:
+            st.session_state.staff_no_input = ''
+
+        # --- Dynamic content based on staff member ---
+        # Note: In a real app, staff_no would be retrieved from authentication, not input.
+        st.markdown("### My Managed Properties (Enter your StaffNo)")
+        staff_no_input = st.text_input("Enter your Staff Number (e.g., SL41):", value=st.session_state.staff_no_input, key='staff_no_key')
+        if staff_no_input:
+            st.session_state.staff_no_input = staff_no_input
+            try:
+                # Query properties managed by the entered staffNo
+                query_managed_properties = f"""
+                SELECT propertyNo, street, city, type, monthlyRent
+                FROM PropertyForRent
+                WHERE managedByStaffNo = '{staff_no_input}';
+                """
+                df_managed_properties = pd.read_sql(query_managed_properties, conn)
+                if not df_managed_properties.empty:
+                    st.dataframe(df_managed_properties, use_container_width=True)
+                else:
+                    st.info(f"No properties found managed by staff number {staff_no_input}.")
+            except Exception as e:
+                st.error(f"Error fetching managed properties: {e}")
+
+        st.markdown("### My Registered Clients (Enter your StaffNo)")
+        staff_no_input_clients = st.text_input("Enter Staff Number to view registered clients (e.g., SL41):", value=st.session_state.staff_no_input, key='staff_no_clients_key')
+        if staff_no_input_clients:
+            st.session_state.staff_no_input = staff_no_input_clients
+            try:
+                # Query clients registered by the entered staffNo
+                query_registered_clients = f"""
+                SELECT clientNo, fName, lName, telNo, dateJoined
+                FROM Client
+                WHERE registeredByStaffNo = '{staff_no_input_clients}';
+                """
+                df_registered_clients = pd.read_sql(query_registered_clients, conn)
+                if not df_registered_clients.empty:
+                    st.dataframe(df_registered_clients, use_container_width=True)
+                else:
+                    st.info(f"No clients found registered by staff number {staff_no_input_clients}.")
+            except Exception as e:
+                st.error(f"Error fetching registered clients: {e}")
